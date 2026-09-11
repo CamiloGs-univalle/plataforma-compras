@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ─── REGLAS GENERALES ─────────────────────────────
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // ─── EMPRESAS ─────────────────────────────────────
+    match /empresas/{empresaId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    // ─── USUARIOS ─────────────────────────────────────
+    match /usuarios/{uid} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+    
+    // ─── ASIGNACIONES ────────────────────────────────
+    match /asignaciones/{asignacionId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    // ─── PRODUCTOS ────────────────────────────────────
+    match /productos/{productoId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    // ─── PROVEEDORES ─────────────────────────────────
+    match /proveedores/{proveedorId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    // ─── SOLICITUDES ─────────────────────────────────
+    match /solicitudes/{solicitudId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+      
+      // Subcollection: Notas
+      match /notas/{notaId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+      }
+      
+      // Subcollection: Archivos
+      match /archivos/{archivoId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+      }
+    }
+  }
+}
