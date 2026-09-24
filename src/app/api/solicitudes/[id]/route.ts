@@ -156,6 +156,28 @@ export async function PATCH(
           fecha: now,
           tipo: 'cotizacion',
         });
+        // Actualizar precioUnitario del producto si estaba en 0 o viene un nuevo valor (muchos productos estan en 0)
+        try {
+          const empresaId = (solicitudSnap.data() as any).empresaId;
+          for (const it of items as any[]) {
+            const codigo = (it as any).codigoProducto;
+            const cotIdx = (it as any).mejorCotizacionIndex ?? 0;
+            const cot = (it as any).cotizaciones?.[cotIdx] ?? (it as any).cotizaciones?.[0];
+            const precioNuevo = cot?.precioUnitario ?? (it as any).precioUnitario;
+            if (!codigo || !precioNuevo || Number(precioNuevo) <= 0) continue;
+            const snapProd = await adminDb.collection('productos').where('empresaId', '==', empresaId).where('codigo', '==', codigo).limit(1).get();
+            if (!snapProd.empty) {
+              const docProd = snapProd.docs[0];
+              const dataProd = docProd.data() as any;
+              const precioActual = Number(dataProd.precioUnitario) || 0;
+              if (precioActual === 0 || precioActual !== Number(precioNuevo)) {
+                await docProd.ref.update({ precioUnitario: Number(precioNuevo), fechaActualizacion: now });
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error actualizando precioUnitario de productos:', e);
+        }
         break;
       }
 

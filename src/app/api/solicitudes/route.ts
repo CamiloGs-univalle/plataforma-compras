@@ -9,17 +9,25 @@ async function validarAuth(request: NextRequest) {
   if (!authHeader?.startsWith('Bearer ')) {
     return { error: 'Token no proporcionado', status: 401 };
   }
-
   const token = authHeader.split('Bearer ')[1];
-  
-  // TODO: Verificar token con Firebase Admin SDK
-  // Por ahora, retornamos un usuario mock
-  return {
-    uid: 'user-uid',
-    email: 'user@email.com',
-    rol: 'admin',
-    empresaId: 'empresa-id',
-  };
+  try {
+    const { getAuth } = await import('firebase-admin/auth');
+    const { adminDb } = await import('@/lib/firebase-admin');
+    const decoded = await getAuth().verifyIdToken(token);
+    const uid = decoded.uid;
+    if (!adminDb) return { error: 'Firebase Admin no configurado', status: 503 };
+    const snap = await adminDb.collection('usuarios').doc(uid).get();
+    if (!snap.exists) return { error: 'Usuario no encontrado', status: 404 };
+    const data = snap.data() as any;
+    return {
+      uid,
+      email: decoded.email || data.email,
+      rol: data.rol || 'solicitante',
+      empresaId: data.empresaActual || (data.empresas?.[0] || ''),
+    };
+  } catch (e) {
+    return { error: 'Token invalido', status: 401 };
+  }
 }
 
 // ─── GET: Obtener solicitudes ─────────────────────────

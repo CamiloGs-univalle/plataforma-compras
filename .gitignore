@@ -48,3 +48,5 @@ serviceAccountKey.json
 compras-6a867*.json
 *-firebase-adminsdk*.json
 
+.vercel
+.env*

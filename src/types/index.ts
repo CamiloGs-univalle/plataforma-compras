@@ -59,6 +59,7 @@ export interface Asignacion {
   empresaId: string;
   uid: string;
   cedula?: string;
+  nombre?: string;
   centroTrabajo: string;
   cliente: string;
   contrato: string;
@@ -120,6 +121,10 @@ export interface ItemSolicitud {
   codigoProducto: string;
   descripcion: string;
   cantidad: number;
+  // Segunda columna "Cantidad" de la grilla SAP (ver ESCTRUCTURA DEL SAP) — en la captura
+  // contiene SANIMAX-AMAGA / jhonatan suarez. Es el detalle libre de la línea (centro
+  // de trabajo específico o beneficiario). Por defecto se hereda el centroTrabajo de la solicitud.
+  cantidadDetalle?: string;
   cliente: string;
   contrato: string;
   unidadNegocio: string;
@@ -170,6 +175,8 @@ export interface Solicitud {
   fechaRequerida?: string;
   observaciones?: string;
   items: ItemSolicitud[];
+  // Marca si es un pedido recurrente/concurrente ya negociado (compra directa sin cotización)
+  esCompraDirecta?: boolean;
   // Nuevo flujo de trabajo
   estado: 'pendiente' | 'en_cotizacion' | 'cotizada' | 'aprobada' | 'en_pedido' | 'completada' | 'cancelada';
   // Quien cotizo

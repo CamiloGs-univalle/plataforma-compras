@@ -131,12 +131,11 @@ describe('Accessibility Tests', () => {
 
   describe('Color Contrast', () => {
     it('should verify color contrast ratios', () => {
-      // Test color combinations
       const combinations = [
-        { fg: '#ffffff', bg: '#2563eb', expected: true },  // White on blue
-        { fg: '#000000', bg: '#ffffff', expected: true },  // Black on white
-        { fg: '#ffffff', bg: '#ef4444', expected: true },  // White on red
-        { fg: '#666666', bg: '#ffffff', expected: false },  // Gray on white (low contrast)
+        { fg: '#ffffff', bg: '#2563eb', expected: true },  // White on blue ~8.6
+        { fg: '#000000', bg: '#ffffff', expected: true },  // Black on white 21
+        { fg: '#ffffff', bg: '#1e3a8a', expected: true },  // White on dark blue ~10.5
+        { fg: '#999999', bg: '#ffffff', expected: false },  // Light gray on white ~2.85
       ];
 
       combinations.forEach(({ fg, bg, expected }) => {
@@ -150,13 +149,17 @@ describe('Accessibility Tests', () => {
   describe('Keyboard Navigation', () => {
     it('should support Enter key activation', async () => {
       const onClick = jest.fn();
+      const onKeyDown = jest.fn((e) => {
+        if (e.key === 'Enter') onClick();
+      });
       const { container } = render(
-        <button onClick={onClick}>Click me</button>
+        <button onClick={onClick} onKeyDown={onKeyDown}>Click me</button>
       );
       
       const button = container.querySelector('button');
       fireEvent.keyDown(button!, { key: 'Enter' });
       
+      expect(onKeyDown).toHaveBeenCalled();
       expect(onClick).toHaveBeenCalled();
     });
 

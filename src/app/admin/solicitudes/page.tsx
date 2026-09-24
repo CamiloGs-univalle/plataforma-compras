@@ -13,7 +13,7 @@ import {
 import type { Solicitud, ItemSolicitud, Proveedor } from '@/types';
 import { ESTADOS_SOLICITUD, ACCIONES_POR_ESTADO } from '@/types';
 import { Button, Card, CardHeader, CardTitle, Input, Badge, StatusBadge, ModalWrapper, SkeletonTable, Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui';
-import { Eye, Trash2, Search, CheckCircle, XCircle, Send, Plus, Minus, Loader2, Check, Settings2, Paperclip, Lightbulb, AlertTriangle, TrendingUp, Clock3, FileText, Copy, Download } from 'lucide-react';
+import { Eye, Trash2, Search, CheckCircle, XCircle, Send, Plus, Minus, Loader2, Check, Settings2, Paperclip, Lightbulb, AlertTriangle, TrendingUp, Clock3, FileText, Copy, Download, Mail } from 'lucide-react';
 import KanbanBoard from '@/components/KanbanBoard';
 import { ProcesoTimeline } from '@/components/ProcesoTimeline';
 
@@ -694,11 +694,31 @@ export default function SolicitudesPage() {
               </div>
             </div>
 
+            {/* Badge Compra Directa */}
+            {(solicitudSel as any).esCompraDirecta && (
+              <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
+                <p className="text-sm font-bold text-amber-900 flex items-center gap-2">🛒 Compra Directa — pedido recurrente ya negociado</p>
+                <p className="text-xs text-amber-800 mt-1">No pasa por cotización. Proveedor y precio ya vienen mapeados en el producto. Recomendación del sistema: <b>más barato</b> (💰) y <b>mayor calidad</b> (⭐) mostrados al solicitante — ya eligió el mejor. Tú solo genera el pedido y se copia al proveedor por correo.</p>
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={()=>{
+                    const provs = [...new Set((solicitudSel.items||[]).map((it:any)=> it.cotizaciones?.[it.mejorCotizacionIndex ?? 0]?.proveedor).filter(Boolean))] as string[];
+                    const to = provs.join(', ') || 'proveedor';
+                    const subject = `[OC DIRECTA #${solicitudSel.numero}] ${solicitudSel.centroTrabajo} — Pedido listo para despacho`;
+                    const body = `Hola ${to},\n\nSe confirma pedido recurrente SOL-#${solicitudSel.numero} (${solicitudSel.centroTrabajo}).\n`+
+                      solicitudSel.items.map((it:any,i:number)=> `${i+1}. ${it.descripcion} x${it.cantidad} — ${it.cotizaciones?.[it.mejorCotizacionIndex ?? 0]?.proveedor||''} $${Number(it.cotizaciones?.[it.mejorCotizacionIndex ?? 0]?.precioUnitario||it.precioUnitario).toLocaleString('es-CO')}`).join('\n') +
+                      `\n\nTotal: ver plataforma ${typeof window!=='undefined'? window.location.origin:''}/admin/solicitudes/${solicitudSel.id}\nGracias.`;
+                    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(provs.join(',')||'')}&cc=${encodeURIComponent(solicitudSel.emailUsuario||'')}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(gmailUrl, '_blank');
+                  }}><Mail className="h-4 w-4 mr-1"/> Notificar proveedor (copiado)</Button>
+                  <span className="text-[11px] text-amber-700 self-center">Se abrirá Gmail con proveedor en Para y solicitante en CC.</span>
+                </div>
+              </div>
+            )}
             {/* SAP — Armado listo para copiar/pegar */}
             {(solicitudSel.estado==='aprobada' || solicitudSel.estado==='cotizada' || solicitudSel.estado==='en_pedido') && (
               <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-3">
-                <p className="text-sm font-bold text-blue-900 flex items-center gap-2">📦 SAP Business One — Armado listo</p>
-                <p className="text-xs text-blue-700 mt-1">CardCode, precios, bodega, centro costo y cuenta ya validados. Solo copie y pegue en SAP → Orden de Compra.</p>
+                <p className="text-sm font-bold text-blue-900 flex items-center gap-2">📦 SAP Business One — Armado listo {(solicitudSel as any).esCompraDirecta ? '(Directa)' : ''}</p>
+                <p className="text-xs text-blue-700 mt-1">Cuenta, precios, centro, cliente/contrato/unidad/sucursal/ciudad/proyecto ya validados{(solicitudSel as any).esCompraDirecta ? ' — pedido recurrente, sin cotización' : ''}. Solo copie y pegue en SAP → Orden de Compra.</p>
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={async()=>{
                     const { copySapTsv } = await import('@/lib/sap-export');
@@ -710,7 +730,7 @@ export default function SolicitudesPage() {
                     downloadSapExcel(solicitudSel);
                   }}><Download className="h-4 w-4 mr-1"/> Descargar Excel DTW</Button>
                 </div>
-                <p className="text-[11px] text-blue-600 mt-2">Incluye: DocDate, DocDueDate, NumAtCard=SOL-{solicitudSel.numero}, Price con IVA, Warehouse=centro, CostCenter, AccountCode. Validado antes de pegar.</p>
+                <p className="text-[11px] text-blue-600 mt-2">Incluye: Cuenta de mayor, Nombre cuenta, Descripción, Cantidad + Cantidad(detalle), Precio por unidad, Indicador impuestos, CLIENTE, CONTRATOS, SUCURSAL, CIUDAD (05001), UNIDADES DE NEGOCIO y Proyecto — tal cual en SAP B1 "Pedido" &gt; Contenido ({(solicitudSel as any).esCompraDirecta ? '14 columnas con Cantidad duplicada' : 'validado'}).</p>
               </div>
             )}
 

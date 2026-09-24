@@ -33,8 +33,11 @@ const COLUMNAS = ['pendiente', 'en_cotizacion', 'cotizada', 'aprobada', 'en_pedi
 function Card({ solicitud, onClick }: { solicitud: Solicitud; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({ id: solicitud.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
-  const valor = solicitud.items?.reduce((a,it)=> a+(((it as any).cotizaciones?.[(it as any).mejorCotizacionIndex??0]?.total) || it.precioUnitario*it.cantidad ||0),0) ||0;
-  const dias = solicitud.fechaCreacion ? Math.max(0, Math.round((Date.now()-new Date(solicitud.fechaCreacion as any).getTime())/86400000)) : 0;
+  const valor = useMemo(() => solicitud.items?.reduce((a,it)=> a+(((it as any).cotizaciones?.[(it as any).mejorCotizacionIndex??0]?.total) || it.precioUnitario*it.cantidad ||0),0) ||0, [solicitud.items]);
+  const dias = useMemo(() => {
+    if (!solicitud.fechaCreacion) return 0;
+    return Math.max(0, Math.round((Date.now() - new Date(solicitud.fechaCreacion as any).getTime()) / 86400000));
+  }, [solicitud.fechaCreacion]);
   const urg = (solicitud.prioridad||'media')==='urgente';
 
   return (

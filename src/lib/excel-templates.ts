@@ -16,7 +16,7 @@ export interface TemplateConfig {
 export const EXCEL_TEMPLATES: Record<string, TemplateConfig> = {
   productos: {
     name: 'Productos',
-    description: 'Plantilla para cargar productos masivamente. Incluye codigo, descripcion, grupo, unidad y precios.',
+    description: 'Plantilla para cargar productos masivamente. Incluye la cuenta contable y el indicador de impuestos que se usan al exportar a SAP.',
     headers: [
       'Codigo',
       'Descripcion',
@@ -24,6 +24,8 @@ export const EXCEL_TEMPLATES: Record<string, TemplateConfig> = {
       'Unidad',
       'Precio Unitario',
       'Cuenta Mayor',
+      'Nombre Cuenta Mayor',
+      'Indicador Impuestos',
       'Stock Minimo',
       'Stock Maximo',
     ],
@@ -35,6 +37,8 @@ export const EXCEL_TEMPLATES: Record<string, TemplateConfig> = {
         'Unidad': 'Rollo',
         'Precio Unitario': 25000,
         'Cuenta Mayor': '110501',
+        'Nombre Cuenta Mayor': 'Papelería y útiles de oficina',
+        'Indicador Impuestos': 'IVAD05',
         'Stock Minimo': 10,
         'Stock Maximo': 100,
       },
@@ -45,11 +49,13 @@ export const EXCEL_TEMPLATES: Record<string, TemplateConfig> = {
         'Unidad': 'Unidad',
         'Precio Unitario': 85000,
         'Cuenta Mayor': '110502',
+        'Nombre Cuenta Mayor': 'Consumibles de impresión',
+        'Indicador Impuestos': 'IVAD05',
         'Stock Minimo': 5,
         'Stock Maximo': 50,
       },
     ],
-    requiredFields: ['Codigo', 'Descripcion', 'Grupo', 'Unidad'],
+    requiredFields: ['Codigo', 'Descripcion', 'Grupo', 'Unidad', 'Cuenta Mayor', 'Indicador Impuestos'],
   },
 
   proveedores: {
@@ -86,28 +92,32 @@ export const EXCEL_TEMPLATES: Record<string, TemplateConfig> = {
 
   asignaciones: {
     name: 'Asignaciones',
-    description: 'Plantilla para asignar productos a centros de trabajo. Vincula productos con los centros que los necesitan.',
+    description: 'Plantilla para asignar a cada solicitante su Centro de Trabajo y los datos de SAP (Cliente, Contrato, Unidad de Negocio, Proyecto, Sucursal) que se autocompletan al crear una solicitud y se usan al exportar a SAP. Use los mismos codigos del maestro SAP (ver src/lib/sap-catalogos.ts).',
     headers: [
+      'Email',
+      'Cedula',
+      'Nombre',
       'Centro Trabajo',
-      'Codigo Producto',
-      'Descripcion Producto',
-      'Cantidad Asignada',
-      'Frecuencia',
-      'Responsable',
-      'Estado',
+      'Cliente',
+      'Contrato',
+      'Unidad Negocio',
+      'Proyecto',
+      'Sucursal',
     ],
     sampleData: [
       {
-        'Centro Trabajo': 'Sede Principal',
-        'Codigo Producto': 'P001',
-        'Descripcion Producto': 'Papel Bond Carta 500 hojas',
-        'Cantidad Asignada': 20,
-        'Frecuencia': 'Mensual',
-        'Responsable': 'Maria Garcia',
-        'Estado': 'Activa',
+        'Email': 'jperez@siamo.com',
+        'Cedula': '1004573250',
+        'Nombre': 'Juan Perez',
+        'Centro Trabajo': 'SALVAJINA',
+        'Cliente': 'CL0015',
+        'Contrato': 'N0015209',
+        'Unidad Negocio': 'UN006',
+        'Proyecto': 'SIAMO',
+        'Sucursal': 'SC001',
       },
     ],
-    requiredFields: ['Centro Trabajo', 'Codigo Producto', 'Cantidad Asignada'],
+    requiredFields: ['Centro Trabajo', 'Cliente', 'Contrato', 'Unidad Negocio', 'Proyecto', 'Sucursal'],
   },
 
   usuarios: {
@@ -237,9 +247,12 @@ function transformRow(row: any, templateKey: string): any {
         grupo: row['Grupo'] || row['grupo'] || '',
         unidad: row['Unidad'] || row['unidad'] || '',
         precioUnitario: parseFloat(row['Precio Unitario'] || row['precioUnitario'] || 0),
-        cuentaMayor: row['Cuenta Mayor'] || row['cuentaMayor'] || '',
+        cuentaMayor: String(row['Cuenta Mayor'] || row['cuentaMayor'] || ''),
+        nombreCuentaMayor: row['Nombre Cuenta Mayor'] || row['nombreCuentaMayor'] || '',
+        indicadorImpuestos: row['Indicador Impuestos'] || row['indicadorImpuestos'] || '',
         stockMinimo: parseInt(row['Stock Minimo'] || row['stockMinimo'] || 0),
         stockMaximo: parseInt(row['Stock Maximo'] || row['stockMaximo'] || 0),
+        activo: true,
       };
     
     case 'proveedores':
@@ -257,14 +270,18 @@ function transformRow(row: any, templateKey: string): any {
       };
     
     case 'asignaciones':
+      // uid: se usa el email como identificador hasta que la persona inicie
+      // sesion con Google por primera vez (mismo criterio que admin/usuarios).
       return {
+        uid: row['Email'] || row['email'] || row['Uid'] || row['uid'] || '',
+        cedula: String(row['Cedula'] || row['cedula'] || ''),
+        nombre: row['Nombre'] || row['nombre'] || '',
         centroTrabajo: row['Centro Trabajo'] || row['centroTrabajo'] || '',
-        codigoProducto: row['Codigo Producto'] || row['codigoProducto'] || '',
-        descripcionProducto: row['Descripcion Producto'] || row['descripcionProducto'] || '',
-        cantidadAsignada: parseInt(row['Cantidad Asignada'] || row['cantidadAsignada'] || 0),
-        frecuencia: row['Frecuencia'] || row['frecuencia'] || 'Mensual',
-        responsable: row['Responsable'] || row['responsable'] || '',
-        estado: row['Estado'] || row['estado'] || 'Activa',
+        cliente: String(row['Cliente'] || row['cliente'] || ''),
+        contrato: String(row['Contrato'] || row['contrato'] || ''),
+        unidadNegocio: String(row['Unidad Negocio'] || row['unidadNegocio'] || ''),
+        proyecto: row['Proyecto'] || row['proyecto'] || '',
+        sucursal: String(row['Sucursal'] || row['sucursal'] || ''),
       };
     
     case 'usuarios':

@@ -56,7 +56,9 @@
     "firebase-admin": "^14.3.0",
     "jest": "^30.4.2",
     "jest-axe": "^11.0.0",
+    "jest-environment-jsdom": "^30.5.2",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

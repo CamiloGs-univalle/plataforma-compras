@@ -17,12 +17,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- intencional: fuerza light mode al montar
   useEffect(() => {
-    // Always use light mode
-    setResolvedTheme('light');
     const root = document.documentElement;
     root.classList.remove('dark');
     root.setAttribute('data-theme', 'light');
+    if (resolvedTheme !== 'light') setResolvedTheme('light');
   }, []);
 
   const handleSetTheme = (newTheme: Theme) => {

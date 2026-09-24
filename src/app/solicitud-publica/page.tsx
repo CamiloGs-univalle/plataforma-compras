@@ -25,6 +25,7 @@ export default function SolicitudPublica() {
   let nextKey = 2;
 
   useEffect(() => { obtenerEmpresas().then(d => { setEmpresas(d.filter(e => e.activa)); setCargando(false); }).catch(() => setCargando(false)); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial de productos por empresa
   useEffect(() => { if (empresaId) obtenerProductos(empresaId).then(setProductos).catch(() => {}); else setProductos([]); }, [empresaId]);
 
   const addItem = () => setItems([...items, { _key: nextKey++, codigoProducto: '', descripcion: '', cantidad: 1 }]);

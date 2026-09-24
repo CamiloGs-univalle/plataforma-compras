@@ -11,7 +11,6 @@ import {
   where,
   limit,
   Timestamp,
-  onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type {
@@ -288,7 +287,7 @@ export async function crearUsuario(
 
 export async function obtenerAsignaciones(
   empresaId: string,
-  uid?: string
+  identificador?: string | (string | undefined | null)[]
 ): Promise<Asignacion[]> {
   const q = query(
     collection(db, 'asignaciones'),
@@ -300,8 +299,20 @@ export async function obtenerAsignaciones(
     ...doc.data(),
   })) as Asignacion[];
 
-  if (uid) {
-    results = results.filter(a => a.uid === uid);
+  // El identificador puede ser el uid real de Firebase Auth, el email
+  // (usado como uid temporal cuando el admin pre-registra a alguien antes de
+  // su primer login, ver admin/usuarios) o la cedula. Se acepta uno solo o
+  // varios candidatos y se hace match contra cualquiera de los tres campos.
+  if (identificador) {
+    const candidatos = (Array.isArray(identificador) ? identificador : [identificador])
+      .filter((v): v is string => !!v)
+      .map(v => v.toLowerCase());
+    if (candidatos.length) {
+      results = results.filter(a => {
+        const valores = [a.uid, a.cedula].filter(Boolean).map(v => String(v).toLowerCase());
+        return valores.some(v => candidatos.includes(v));
+      });
+    }
   }
 
   return results;
@@ -426,6 +437,26 @@ export async function crearSolicitud(
     fechaCreacion: Timestamp.now(),
     fechaActualizacion: Timestamp.now(),
   });
+  // Si la solicitud trae precio (compra directa o con cotizacion inicial) y el producto estaba en 0, actualizarlo
+  try {
+    for (const it of (solicitud.items || []) as any[]) {
+      const codigo = it.codigoProducto;
+      const precioNuevo = it.precioUnitario ?? it.cotizaciones?.[it.mejorCotizacionIndex ?? 0]?.precioUnitario;
+      if (!codigo || !precioNuevo || Number(precioNuevo) <= 0) continue;
+      const qProd = query(collection(db, 'productos'), where('empresaId', '==', solicitud.empresaId), where('codigo', '==', codigo), limit(1));
+      const snap = await getDocs(qProd);
+      if (!snap.empty) {
+        const docProd = snap.docs[0];
+        const dataProd = docProd.data() as any;
+        const precioActual = Number(dataProd.precioUnitario) || 0;
+        if (precioActual === 0 || precioActual !== Number(precioNuevo)) {
+          await updateDoc(doc(db, 'productos', docProd.id), { precioUnitario: Number(precioNuevo), fechaActualizacion: Timestamp.now() } as any);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error actualizando precioUnitario en crearSolicitud:', e);
+  }
   return { id: docRef.id, numero: siguienteNumero };
 }
 
@@ -516,6 +547,32 @@ export async function guardarCotizaciones(
     fecha: Timestamp.now(),
     tipo: 'cotizacion',
   });
+  // Actualizar precioUnitario del producto si estaba en 0
+  try {
+    const snapSol = await getDoc(docRef);
+    const empresaId = (snapSol.data() as any)?.empresaId;
+    if (empresaId) {
+      for (const it of cleanItems as any[]) {
+        const codigo = it.codigoProducto;
+        const cotIdx = it.mejorCotizacionIndex ?? 0;
+        const cot = it.cotizaciones?.[cotIdx] ?? it.cotizaciones?.[0];
+        const precioNuevo = cot?.precioUnitario ?? it.precioUnitario;
+        if (!codigo || !precioNuevo || Number(precioNuevo) <= 0) continue;
+        const qProd = query(collection(db, 'productos'), where('empresaId', '==', empresaId), where('codigo', '==', codigo), limit(1));
+        const snap = await getDocs(qProd);
+        if (!snap.empty) {
+          const docProd = snap.docs[0];
+          const dataProd = docProd.data() as any;
+          const precioActual = Number(dataProd.precioUnitario) || 0;
+          if (precioActual === 0 || precioActual !== Number(precioNuevo)) {
+            await updateDoc(doc(db, 'productos', docProd.id), { precioUnitario: Number(precioNuevo), fechaActualizacion: Timestamp.now() } as any);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error actualizando precioUnitario en guardarCotizaciones:', e);
+  }
 }
 
 export async function aprobarSolicitud(

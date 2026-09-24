@@ -22,9 +22,7 @@ import {
   X,
   ChevronRight,
   LogOut,
-  Settings,
   Bell,
-  Search,
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -47,7 +45,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { empresa } = useCompany();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const rol = usuario?.rol || 'solicitante';
   const navItems = NAV_POR_ROL[rol] || NAV_POR_ROL.solicitante;
@@ -106,8 +103,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
-                onMouseEnter={() => setHoveredItem(item.href)}
-                onMouseLeave={() => setHoveredItem(null)}
                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                   active
                     ? 'bg-blue-50 text-blue-700'

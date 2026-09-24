@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -178,12 +178,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     }
-  };
-
-  const logout = async () => {
-    await signOut(auth);
-    setUsuario(null);
-    setUser(null);
   };
 
   const signOutFn = async () => {

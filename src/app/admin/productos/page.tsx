@@ -53,6 +53,8 @@ export default function ProductosPage() {
     unidad: '',
     precioUnitario: 0,
     cuentaMayor: '',
+    nombreCuentaMayor: '',
+    indicadorImpuestos: '',
     stockMinimo: 0,
     stockMaximo: 0,
   });
@@ -69,7 +71,7 @@ export default function ProductosPage() {
   const handleCreate = async () => {
     if (!empresa?.id) return;
     try {
-      await crearProducto({ ...formData, empresaId: empresa.id, nombreCuentaMayor: '', indicadorImpuestos: '', activo: true } as any);
+      await crearProducto({ ...formData, empresaId: empresa.id, activo: true } as any);
       toast.success('Producto creado exitosamente');
       setShowCreate(false);
       resetForm();
@@ -128,6 +130,8 @@ export default function ProductosPage() {
       unidad: '',
       precioUnitario: 0,
       cuentaMayor: '',
+      nombreCuentaMayor: '',
+      indicadorImpuestos: '',
       stockMinimo: 0,
       stockMaximo: 0,
     });
@@ -142,6 +146,8 @@ export default function ProductosPage() {
       unidad: producto.unidad || '',
       precioUnitario: producto.precioUnitario || 0,
       cuentaMayor: producto.cuentaMayor || '',
+      nombreCuentaMayor: producto.nombreCuentaMayor || '',
+      indicadorImpuestos: producto.indicadorImpuestos || '',
       stockMinimo: producto.stockMinimo || 0,
       stockMaximo: producto.stockMaximo || 0,
     });
@@ -445,6 +451,22 @@ export default function ProductosPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label>Nombre Cuenta Mayor</Label>
+              <Input
+                value={formData.nombreCuentaMayor}
+                onChange={(e) => setFormData({ ...formData, nombreCuentaMayor: e.target.value })}
+                placeholder="Papeleria y utiles de oficina"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Indicador Impuestos (SAP)</Label>
+              <Input
+                value={formData.indicadorImpuestos}
+                onChange={(e) => setFormData({ ...formData, indicadorImpuestos: e.target.value })}
+                placeholder="IVAD05"
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Stock Minimo</Label>
               <Input
                 type="number"
@@ -523,6 +545,20 @@ export default function ProductosPage() {
               <Input
                 value={formData.cuentaMayor}
                 onChange={(e) => setFormData({ ...formData, cuentaMayor: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nombre Cuenta Mayor</Label>
+              <Input
+                value={formData.nombreCuentaMayor}
+                onChange={(e) => setFormData({ ...formData, nombreCuentaMayor: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Indicador Impuestos (SAP)</Label>
+              <Input
+                value={formData.indicadorImpuestos}
+                onChange={(e) => setFormData({ ...formData, indicadorImpuestos: e.target.value })}
               />
             </div>
             <div className="space-y-2">

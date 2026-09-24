@@ -2,59 +2,77 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ─── REGLAS GENERALES ─────────────────────────────
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // ─── HELPERS ──────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isMemberOfEmpresa(empresaId) {
+      return isAuthenticated() && empresaId in get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.empresas;
+    }
+    function hasRole(roles) {
+      return isAuthenticated() && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol in roles;
     }
     
     // ─── EMPRESAS ─────────────────────────────────────
     match /empresas/{empresaId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasRole(['super_admin', 'admin']);
     }
     
     // ─── USUARIOS ─────────────────────────────────────
     match /usuarios/{uid} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (request.auth.uid == uid || hasRole(['super_admin', 'admin']));
+      allow delete: if hasRole(['super_admin']);
     }
     
     // ─── ASIGNACIONES ────────────────────────────────
     match /asignaciones/{asignacionId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow read: if isAuthenticated() && isMemberOfEmpresa(resource.data.empresaId);
+      allow create, update, delete: if hasRole(['super_admin', 'admin']);
     }
     
     // ─── PRODUCTOS ────────────────────────────────────
     match /productos/{productoId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow read: if isAuthenticated() && isMemberOfEmpresa(resource.data.empresaId);
+      allow create, update, delete: if hasRole(['super_admin', 'admin', 'abastecimiento']);
     }
     
     // ─── PROVEEDORES ─────────────────────────────────
     match /proveedores/{proveedorId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow read: if isAuthenticated() && isMemberOfEmpresa(resource.data.empresaId);
+      allow create, update, delete: if hasRole(['super_admin', 'admin', 'abastecimiento']);
     }
     
     // ─── SOLICITUDES ─────────────────────────────────
     match /solicitudes/{solicitudId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow read: if isAuthenticated() && isMemberOfEmpresa(resource.data.empresaId);
+      allow create: if isAuthenticated() && isMemberOfEmpresa(request.resource.data.empresaId);
+      allow update, delete: if isAuthenticated() && isMemberOfEmpresa(resource.data.empresaId);
       
       // Subcollection: Notas
       match /notas/{notaId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
+        allow read: if isAuthenticated() && isMemberOfEmpresa(get(/databases/$(database)/documents/solicitudes/$(solicitudId)).data.empresaId);
+        allow create: if isAuthenticated();
       }
       
       // Subcollection: Archivos
       match /archivos/{archivoId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
+        allow read: if isAuthenticated() && isMemberOfEmpresa(get(/databases/$(database)/documents/solicitudes/$(solicitudId)).data.empresaId);
+        allow create: if isAuthenticated();
       }
+    }
+
+    // ─── EMAIL LOGS ───────────────────────────────────
+    match /email_logs/{logId} {
+      allow read: if hasRole(['super_admin', 'admin']);
+      allow create: if isAuthenticated();
+    }
+
+    // ─── DENEGAR TODO LO DEMAS ────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
